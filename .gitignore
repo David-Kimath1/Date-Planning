@@ -34,3 +34,4 @@ prisma/migrations/dev/
 # Editor
 .vscode/
 .idea/
+.vercel

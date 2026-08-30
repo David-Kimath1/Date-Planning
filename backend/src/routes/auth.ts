@@ -28,14 +28,14 @@ router.post('/login', async (req, res) => {
     
     const token = jwt.sign(
       { userId: user.id, email: user.email },
-      process.env.JWT_SECRET!,
-      { expiresIn: process.env.JWT_EXPIRES_IN || '15m' }
+      process.env.JWT_SECRET as string,
+      { expiresIn: '15m' } as any
     );
     
     const refreshToken = jwt.sign(
       { userId: user.id },
-      process.env.JWT_REFRESH_SECRET!,
-      { expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d' }
+      process.env.JWT_REFRESH_SECRET as string,
+      { expiresIn: '7d' } as any
     );
     
     res.json({
@@ -67,7 +67,7 @@ router.post('/refresh', async (req, res) => {
       return res.status(401).json({ message: 'Refresh token required' });
     }
     
-    const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET!) as { userId: string };
+    const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET as string) as { userId: string };
     const user = await prisma.user.findUnique({ where: { id: decoded.userId } });
     
     if (!user) {
@@ -76,8 +76,8 @@ router.post('/refresh', async (req, res) => {
     
     const newToken = jwt.sign(
       { userId: user.id, email: user.email },
-      process.env.JWT_SECRET!,
-      { expiresIn: process.env.JWT_EXPIRES_IN || '15m' }
+      process.env.JWT_SECRET as string,
+      { expiresIn: '15m' } as any
     );
     
     res.json({ token: newToken });

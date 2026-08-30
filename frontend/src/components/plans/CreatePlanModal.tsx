@@ -27,7 +27,7 @@ export function CreatePlanModal({ onClose, prefillDate }: CreatePlanModalProps) 
   const [date, setDate] = useState(prefillDate || '')
   const [time, setTime] = useState('')
   const [category, setCategory] = useState('DATE')
-  const [icon, setIcon] = useState('heart')
+  const [icon, setIcon] = useState<string>('heart')
   const [emoji, setEmoji] = useState('')
   const [isImportant, setIsImportant] = useState(false)
   const [location, setLocation] = useState('')
@@ -181,7 +181,7 @@ export function CreatePlanModal({ onClose, prefillDate }: CreatePlanModalProps) 
                   type="button"
                   onClick={() => {
                     setCategory(cat.id)
-                    setIcon(cat.icon)
+                    setIcon(cat.id)
                   }}
                   className={`flex flex-col items-center p-3 rounded-lg border-2 transition-colors ${
                     category === cat.id ? 'border-primary-500 bg-primary-50' : 'border-gray-200 hover:border-gray-300'

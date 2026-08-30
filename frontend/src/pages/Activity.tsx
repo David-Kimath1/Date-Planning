@@ -117,7 +117,7 @@ export function Activity() {
           <p className="text-gray-600 mt-1 text-sm sm:text-base">Track all changes and actions</p>
         </div>
         
-        {(activities?.length > 0 || events?.length > 0) && (
+        {((activities?.length ?? 0) > 0 || (events?.length ?? 0) > 0) && (
           <button
             onClick={() => setShowClearConfirm(true)}
             className="inline-flex items-center px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors"

@@ -70,7 +70,7 @@ router.post('/', async (req: AuthRequest, res) => {
       }
     });
     
-    await logActivity(prisma, req.userId!, venue.eventId || '', 'CREATED_VENUE', {
+    await logActivity(prisma, req.userId!, venue.eventId || undefined, 'CREATED_VENUE', {
       name: venue.name,
       location: venue.location
     });
@@ -101,12 +101,9 @@ router.post('/:id/agree', async (req: AuthRequest, res) => {
     
     const updatedVenue = await prisma.venue.update({
       where: { id: venueId },
-      data: {
-        status: 'AGREED'
-      }
+      data: { status: 'AGREED' }
     });
     
-    // If venue is linked to an event, update agreement
     if (venue.eventId) {
       const userEmail = req.user?.email;
       const isDave = userEmail === process.env.DAVE_EMAIL;
@@ -130,7 +127,6 @@ router.post('/:id/agree', async (req: AuthRequest, res) => {
         }
       });
       
-      // Check if both agreed
       if (agreement.agreedByDave && agreement.agreedByLJ) {
         await prisma.agreement.update({
           where: { id: agreement.id },
@@ -141,32 +137,10 @@ router.post('/:id/agree', async (req: AuthRequest, res) => {
           where: { id: venue.eventId },
           data: { status: 'AWAITING_AGREEMENT' }
         });
-        
-        // Notify both users
-        await createNotification(
-          prisma,
-          req.userId!,
-          'VENUE_AGREED',
-          'Venue Agreed',
-          `Both agreed on ${venue.name}`,
-          venue.eventId
-        );
-        
-        const otherUser = await getOtherUser(prisma, req.userId!);
-        if (otherUser) {
-          await createNotification(
-            prisma,
-            otherUser.id,
-            'VENUE_AGREED',
-            'Venue Agreed',
-            `Both agreed on ${venue.name}`,
-            venue.eventId
-          );
-        }
       }
     }
     
-    await logActivity(prisma, req.userId!, venue.eventId || '', 'AGREED_VENUE', {
+    await logActivity(prisma, req.userId!, venue.eventId || undefined, 'AGREED_VENUE', {
       name: venue.name
     });
     
@@ -192,16 +166,13 @@ router.post('/:id/reject', async (req: AuthRequest, res) => {
     
     const updatedVenue = await prisma.venue.update({
       where: { id: venueId },
-      data: {
-        status: 'REJECTED'
-      }
+      data: { status: 'REJECTED' }
     });
     
-    await logActivity(prisma, req.userId!, venue.eventId || '', 'REJECTED_VENUE', {
+    await logActivity(prisma, req.userId!, venue.eventId || undefined, 'REJECTED_VENUE', {
       name: venue.name
     });
     
-    // Notify other user
     const otherUser = await getOtherUser(prisma, req.userId!);
     if (otherUser) {
       await createNotification(
@@ -210,7 +181,7 @@ router.post('/:id/reject', async (req: AuthRequest, res) => {
         'VENUE_REJECTED',
         'Venue Rejected',
         `${req.user?.name} rejected ${venue.name}`,
-        venue.eventId
+        venue.eventId || undefined
       );
     }
     
@@ -238,7 +209,7 @@ router.delete('/:id', async (req: AuthRequest, res) => {
       where: { id: venueId }
     });
     
-    await logActivity(prisma, req.userId!, venue.eventId || '', 'DELETED_VENUE', {
+    await logActivity(prisma, req.userId!, venue.eventId || undefined, 'DELETED_VENUE', {
       name: venue.name
     });
     

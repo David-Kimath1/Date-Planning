@@ -60,11 +60,10 @@ router.post('/', async (req: AuthRequest, res) => {
       }
     });
     
-    await logActivity(prisma, req.userId!, suggestion.eventId || '', 'CREATED_SUGGESTION', {
+    await logActivity(prisma, req.userId!, suggestion.eventId || undefined, 'CREATED_SUGGESTION', {
       title: suggestion.title
     });
     
-    // Notify other user
     const otherUser = await getOtherUser(prisma, req.userId!);
     if (otherUser) {
       await createNotification(
@@ -73,7 +72,7 @@ router.post('/', async (req: AuthRequest, res) => {
         'NEW_PLAN_SUGGESTION',
         'New Suggestion',
         `${req.user?.name} suggested "${suggestion.title}"`,
-        suggestion.eventId
+        suggestion.eventId || undefined
       );
     }
     
@@ -110,11 +109,10 @@ router.post('/:id/respond', async (req: AuthRequest, res) => {
       }
     });
     
-    await logActivity(prisma, req.userId!, suggestion.eventId || '', `SUGGESTION_${status}`, {
+    await logActivity(prisma, req.userId!, suggestion.eventId || undefined, `SUGGESTION_${status}`, {
       title: suggestion.title
     });
     
-    // Notify other user
     const otherUser = await getOtherUser(prisma, req.userId!);
     if (otherUser) {
       await createNotification(
@@ -123,7 +121,7 @@ router.post('/:id/respond', async (req: AuthRequest, res) => {
         status === 'ACCEPTED' ? 'SUGGESTION_ACCEPTED' : 'SUGGESTION_REJECTED',
         `Suggestion ${status.toLowerCase()}`,
         `${req.user?.name} ${status.toLowerCase()} "${suggestion.title}"`,
-        suggestion.eventId
+        suggestion.eventId || undefined
       );
     }
     

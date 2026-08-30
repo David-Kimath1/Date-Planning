@@ -22,17 +22,22 @@ export async function createNotification(
 export async function logActivity(
   prisma: PrismaClient,
   userId: string,
-  eventId: string,
+  eventId: string | undefined | null,
   action: string,
   details?: any
 ) {
+  const data: any = {
+    userId,
+    action,
+    details: details || {},
+  };
+  
+  if (eventId) {
+    data.eventId = eventId;
+  }
+  
   return prisma.activityLog.create({
-    data: {
-      userId,
-      eventId,
-      action,
-      details: details || {},
-    },
+    data,
   });
 }
 
@@ -63,25 +68,17 @@ export function calculateCountdown(targetDate: Date) {
     };
   }
   
-  // Calculate years and months using calendar-aware method
   let years = 0;
   let months = 0;
   
   const tempDate = new Date(targetDate);
   const currentDate = new Date(now);
   
-  // Calculate years
-  while (addYears(currentDate, years + 1) <= tempDate) {
-    years++;
-  }
+  while (addYears(currentDate, years + 1) <= tempDate) years++;
   
-  // Calculate months after years
   const afterYears = addYears(currentDate, years);
-  while (addMonths(afterYears, months + 1) <= tempDate) {
-    months++;
-  }
+  while (addMonths(afterYears, months + 1) <= tempDate) months++;
   
-  // Calculate remaining time
   const afterYearsAndMonths = addMonths(afterYears, months);
   const remainingMs = tempDate.getTime() - afterYearsAndMonths.getTime();
   
@@ -129,7 +126,6 @@ export function shouldDelayNotification(userSettings: any, notificationTime: Dat
   const quietStart = startHour * 60 + startMinutes;
   const quietEnd = endHour * 60 + endMinutes;
   
-  // Handle quiet hours that span midnight
   if (quietStart <= quietEnd) {
     return currentTime >= quietStart && currentTime < quietEnd;
   } else {
@@ -148,17 +144,13 @@ export function getNextAvailableTime(userSettings: any): Date {
   const nextAvailable = new Date(now);
   nextAvailable.setHours(endHour, endMinutes, 0, 0);
   
-  // If quiet hours span midnight and we're before midnight
   const [startHour] = userSettings.quietHoursStart.split(':').map(Number);
   if (startHour > endHour && now.getHours() >= startHour) {
     nextAvailable.setDate(nextAvailable.getDate() + 1);
   }
   
-  // If we're in quiet hours that don't span midnight
   if (startHour <= endHour && now.getHours() < endHour) {
-    // Next available is end of quiet hours today
   } else if (startHour <= endHour && now.getHours() >= endHour) {
-    // Already past quiet hours
     return now;
   }
   
