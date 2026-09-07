@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Heart, Lock } from 'lucide-react'
 import { useAuthStore } from '../store/authStore'
+import { API_URL } from '../config'
 
 export function Login() {
   const [email, setEmail] = useState('')
@@ -17,7 +18,7 @@ export function Login() {
     setLoading(true)
 
     try {
-      const response = await fetch('/api/auth/login', {
+      const response = await fetch(`${API_URL}/api/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -25,12 +26,28 @@ export function Login() {
         body: JSON.stringify({ email, password }),
       })
 
-      if (!response.ok) {
-        const data = await response.json()
-        throw new Error(data.message || 'Login failed')
+      const text = await response.text()
+
+      let data: any = {}
+
+      if (text) {
+        try {
+          data = JSON.parse(text)
+        } catch {
+          throw new Error(
+            `Server returned an invalid response (${response.status})`
+          )
+        }
       }
 
-      const data = await response.json()
+      if (!response.ok) {
+        throw new Error(data.message || `Login failed (${response.status})`)
+      }
+
+      if (!data.token || !data.user) {
+        throw new Error('Login response is missing authentication data')
+      }
+
       setAuth(data.token, data.refreshToken, data.user)
       navigate('/')
     } catch (err) {
@@ -47,7 +64,11 @@ export function Login() {
           <div className="mx-auto h-16 w-16 rounded-full bg-gradient-to-r from-indigo-500 to-pink-500 flex items-center justify-center">
             <Heart className="h-8 w-8 text-white" />
           </div>
-          <h1 className="mt-6 text-4xl font-display font-bold text-gray-900">Dave & LJ</h1>
+
+          <h1 className="mt-6 text-4xl font-display font-bold text-gray-900">
+            Dave & LJ
+          </h1>
+
           <p className="mt-2 text-sm text-gray-600">
             Your private space for planning the present and future together
           </p>
@@ -60,54 +81,58 @@ export function Login() {
             </div>
           )}
 
-          <div className="rounded-lg shadow-sm space-y-4">
+          <div className="space-y-4">
             <div>
-              <label htmlFor="email" className="sr-only">
-                Email address
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium text-gray-700"
+              >
+                Email
               </label>
+
               <input
                 id="email"
-                name="email"
                 type="email"
-                autoComplete="email"
-                required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="appearance-none rounded-lg relative block w-full px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                placeholder="Email address"
+                required
+                className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-3 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                placeholder="Enter your email"
               />
             </div>
+
             <div>
-              <label htmlFor="password" className="sr-only">
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-gray-700"
+              >
                 Password
               </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                autoComplete="current-password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="appearance-none rounded-lg relative block w-full px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                placeholder="Password"
-              />
+
+              <div className="relative">
+                <Lock className="absolute left-3 top-3.5 h-5 w-5 text-gray-400" />
+
+                <input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  className="mt-1 block w-full rounded-lg border border-gray-300 pl-10 pr-4 py-3 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                  placeholder="Enter your password"
+                />
+              </div>
             </div>
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-gradient-to-r from-indigo-600 to-pink-600 hover:from-indigo-700 hover:to-pink-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            className="w-full rounded-lg bg-gradient-to-r from-indigo-500 to-pink-500 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            <Lock className="h-5 w-5 mr-2" />
             {loading ? 'Signing in...' : 'Sign in'}
           </button>
         </form>
-
-        <p className="text-center text-xs text-gray-500">
-          This is a private space for Dave and LJ only
-        </p>
       </div>
     </div>
   )

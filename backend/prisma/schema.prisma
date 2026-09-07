@@ -7,6 +7,205 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model User {
+  id                   String             @id @default(cuid())
+  name                 String
+  email                String             @unique
+  passwordHash         String
+  quietHoursStart      String?
+  quietHoursEnd        String?
+  reminderPrefs        Json               @default("{}")
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+  activityLogs         ActivityLog[]
+  countdownConfigs     CountdownConfig[]
+  events               Event[]            @relation("CreatedEvents")
+  notifications        Notification[]
+  pushSubscriptions    PushSubscription[]
+  reminderConfigs      ReminderConfig[]
+  suggestions          Suggestion[]       @relation("CreatedSuggestions")
+  respondedSuggestions Suggestion[]       @relation("RespondedSuggestions")
+  venues               Venue[]            @relation("SuggestedVenues")
+}
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  endpoint  String   @unique
+  keys      Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Event {
+  id              String           @id @default(cuid())
+  title           String
+  description     String?
+  date            DateTime
+  endTime         DateTime?
+  location        String?
+  category        Category         @default(CUSTOM)
+  icon            String           @default("calendar")
+  emoji           String?
+  status          EventStatus      @default(IDEA)
+  isImportant     Boolean          @default(false)
+  notes           String?
+  createdById     String
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  activityLogs    ActivityLog[]
+  agreements      Agreement[]
+  countdownConfig CountdownConfig?
+  createdBy       User             @relation("CreatedEvents", fields: [createdById], references: [id])
+  notifications   Notification[]
+  reminderConfigs ReminderConfig[]
+  suggestions     Suggestion[]
+  venues          Venue[]
+
+  @@index([date])
+  @@index([status])
+  @@index([createdById])
+}
+
+model Venue {
+  id            String       @id @default(cuid())
+  name          String
+  location      String?
+  website       String?
+  category      Category     @default(CUSTOM)
+  icon          String       @default("map-pin")
+  emoji         String?
+  notes         String?
+  suggestedById String
+  eventId       String?
+  status        VenueStatus  @default(PROPOSED)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  agreements    Agreement[]
+  suggestions   Suggestion[]
+  event         Event?       @relation(fields: [eventId], references: [id])
+  suggestedBy   User         @relation("SuggestedVenues", fields: [suggestedById], references: [id])
+
+  @@index([suggestedById])
+  @@index([eventId])
+}
+
+model Suggestion {
+  id            String           @id @default(cuid())
+  title         String
+  description   String?
+  proposedDate  DateTime?
+  proposedTime  String?
+  eventId       String?
+  createdById   String
+  respondedById String?
+  status        SuggestionStatus @default(PENDING)
+  response      String?
+  venueId       String?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  createdBy     User             @relation("CreatedSuggestions", fields: [createdById], references: [id])
+  event         Event?           @relation(fields: [eventId], references: [id])
+  respondedBy   User?            @relation("RespondedSuggestions", fields: [respondedById], references: [id])
+  venue         Venue?           @relation(fields: [venueId], references: [id])
+
+  @@index([createdById])
+  @@index([status])
+  @@index([eventId])
+}
+
+model Agreement {
+  id           String    @id @default(cuid())
+  eventId      String
+  venueId      String
+  agreedByDave Boolean   @default(false)
+  agreedByLJ   Boolean   @default(false)
+  agreedAt     DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  event        Event     @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  venue        Venue     @relation(fields: [venueId], references: [id])
+
+  @@unique([eventId, venueId])
+  @@index([eventId])
+}
+
+model Notification {
+  id          String           @id @default(cuid())
+  userId      String
+  type        NotificationType
+  title       String
+  message     String
+  eventId     String?
+  read        Boolean          @default(false)
+  deliveredAt DateTime         @default(now())
+  createdAt   DateTime         @default(now())
+  event       Event?           @relation(fields: [eventId], references: [id])
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, read])
+  @@index([userId, createdAt])
+}
+
+model ActivityLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  eventId   String?
+  action    String
+  details   Json?
+  createdAt DateTime @default(now())
+  event     Event?   @relation(fields: [eventId], references: [id])
+  user      User?    @relation(fields: [userId], references: [id])
+
+  @@index([createdAt])
+  @@index([eventId])
+  @@index([userId])
+}
+
+model ReminderConfig {
+  id            String    @id @default(cuid())
+  eventId       String
+  userId        String
+  monthsBefore  Int?
+  weeksBefore   Int?
+  daysBefore    Int?
+  hoursBefore   Int?
+  minutesBefore Int?
+  customMessage String?
+  sent          Boolean   @default(false)
+  sentAt        DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  event         Event     @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, userId])
+  @@index([eventId])
+  @@index([userId])
+  @@index([sent])
+}
+
+model CountdownConfig {
+  id          String   @id @default(cuid())
+  eventId     String   @unique
+  userId      String
+  showYears   Boolean  @default(true)
+  showMonths  Boolean  @default(true)
+  showDays    Boolean  @default(true)
+  showHours   Boolean  @default(true)
+  showMinutes Boolean  @default(true)
+  showSeconds Boolean  @default(true)
+  preset      String?  @default("full")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  event       Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([eventId])
+  @@index([userId])
+}
+
 enum EventStatus {
   IDEA
   PROPOSED
@@ -55,207 +254,4 @@ enum Category {
   SHOPPING
   IMPORTANT
   CUSTOM
-}
-
-model User {
-  id                   String             @id @default(cuid())
-  name                 String
-  email                String             @unique
-  passwordHash         String
-  quietHoursStart      String? // "23:00" format
-  quietHoursEnd        String? // "07:00" format
-  reminderPrefs        Json               @default("{}")
-  pushSubscriptions    PushSubscription[]
-  events               Event[]            @relation("CreatedEvents")
-  suggestions          Suggestion[]       @relation("CreatedSuggestions")
-  respondedSuggestions Suggestion[]       @relation("RespondedSuggestions")
-  venues               Venue[]            @relation("SuggestedVenues")
-  notifications        Notification[]
-  activityLogs         ActivityLog[]
-  reminderConfigs      ReminderConfig[]
-  countdownConfigs     CountdownConfig[]
-  createdAt            DateTime           @default(now())
-  updatedAt            DateTime           @updatedAt
-}
-
-model PushSubscription {
-  id        String   @id @default(cuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  endpoint  String   @unique
-  keys      Json // p256dh and auth keys
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model Event {
-  id          String      @id @default(cuid())
-  title       String
-  description String?
-  date        DateTime
-  endTime     DateTime?
-  location    String?
-  category    Category    @default(CUSTOM)
-  icon        String      @default("calendar")
-  emoji       String?
-  status      EventStatus @default(IDEA)
-  isImportant Boolean     @default(false)
-  notes       String?
-  createdById String
-  createdBy   User        @relation("CreatedEvents", fields: [createdById], references: [id])
-
-  venues      Venue[]
-  suggestions Suggestion[]
-
-  activityLogs    ActivityLog[]
-  notifications   Notification[]
-  agreements      Agreement[]
-  reminderConfigs ReminderConfig[]
-  countdownConfig CountdownConfig?
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
-
-  @@index([date])
-  @@index([status])
-  @@index([createdById])
-}
-
-model Venue {
-  id            String   @id @default(cuid())
-  name          String
-  location      String?
-  website       String?
-  category      Category @default(CUSTOM)
-  icon          String   @default("map-pin")
-  emoji         String?
-  notes         String?
-  suggestedById String
-  suggestedBy   User     @relation("SuggestedVenues", fields: [suggestedById], references: [id])
-
-  eventId     String?
-  event       Event?       @relation(fields: [eventId], references: [id])
-  suggestions Suggestion[]
-
-  status     VenueStatus @default(PROPOSED)
-  agreements Agreement[]
-  createdAt  DateTime    @default(now())
-  updatedAt  DateTime    @updatedAt
-
-  @@index([suggestedById])
-  @@index([eventId])
-}
-
-model Suggestion {
-  id            String           @id @default(cuid())
-  title         String
-  description   String?
-  proposedDate  DateTime?
-  proposedTime  String?
-  eventId       String?
-  event         Event?           @relation(fields: [eventId], references: [id])
-  createdById   String
-  createdBy     User             @relation("CreatedSuggestions", fields: [createdById], references: [id])
-  respondedById String?
-  respondedBy   User?            @relation("RespondedSuggestions", fields: [respondedById], references: [id])
-  status        SuggestionStatus @default(PENDING)
-  response      String?
-  venueId       String?
-  venue         Venue?           @relation(fields: [venueId], references: [id])
-  createdAt     DateTime         @default(now())
-  updatedAt     DateTime         @updatedAt
-
-  @@index([createdById])
-  @@index([status])
-  @@index([eventId])
-}
-
-model Agreement {
-  id           String    @id @default(cuid())
-  eventId      String
-  event        Event     @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  venueId      String
-  venue        Venue     @relation(fields: [venueId], references: [id])
-  agreedByDave Boolean   @default(false)
-  agreedByLJ   Boolean   @default(false)
-  agreedAt     DateTime?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-
-  @@unique([eventId, venueId])
-  @@index([eventId])
-}
-
-model Notification {
-  id          String           @id @default(cuid())
-  userId      String
-  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  type        NotificationType
-  title       String
-  message     String
-  eventId     String?
-  event       Event?           @relation(fields: [eventId], references: [id])
-  read        Boolean          @default(false)
-  deliveredAt DateTime         @default(now())
-  createdAt   DateTime         @default(now())
-
-  @@index([userId, read])
-  @@index([userId, createdAt])
-}
-
-model ActivityLog {
-  id        String   @id @default(cuid())
-  userId    String?
-  user      User?    @relation(fields: [userId], references: [id])
-  eventId   String?
-  event     Event?   @relation(fields: [eventId], references: [id])
-  action    String
-  details   Json?
-  createdAt DateTime @default(now())
-
-  @@index([createdAt])
-  @@index([eventId])
-  @@index([userId])
-}
-
-model ReminderConfig {
-  id            String    @id @default(cuid())
-  eventId       String
-  event         Event     @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  userId        String
-  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  monthsBefore  Int?
-  weeksBefore   Int?
-  daysBefore    Int?
-  hoursBefore   Int?
-  minutesBefore Int?
-  customMessage String?
-  sent          Boolean   @default(false)
-  sentAt        DateTime?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-
-  @@unique([eventId, userId])
-  @@index([eventId])
-  @@index([userId])
-  @@index([sent])
-}
-
-model CountdownConfig {
-  id          String   @id @default(cuid())
-  eventId     String   @unique
-  event       Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  showYears   Boolean  @default(true)
-  showMonths  Boolean  @default(true)
-  showDays    Boolean  @default(true)
-  showHours   Boolean  @default(true)
-  showMinutes Boolean  @default(true)
-  showSeconds Boolean  @default(true)
-  preset      String?  @default("full")
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@index([eventId])
-  @@index([userId])
 }
