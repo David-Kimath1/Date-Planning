@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { X, Heart, Utensils, Film, Plane, ShoppingBag, Star, User } from 'lucide-react'
+import { apiFetch } from '../../utils/api'
 
 const categories = [
   { id: 'FOOD', label: 'Food', icon: Utensils },
@@ -24,13 +25,10 @@ export function AddVenueModal({ user, onClose }: { user: 'Dave' | 'LJ'; onClose:
 
   const addVenueMutation = useMutation({
     mutationFn: async (venueData: any) => {
-      const response = await fetch('/api/venues', {
+      return apiFetch('/api/venues', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(venueData),
       })
-      if (!response.ok) throw new Error('Failed to add venue')
-      return response.json()
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['venues'] })

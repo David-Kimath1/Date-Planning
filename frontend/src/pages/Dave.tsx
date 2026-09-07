@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Plus, MapPin, Clock, Calendar, Star, Send, Trash2, Edit, ExternalLink } from 'lucide-react'
+import { apiFetch } from '../utils/api'
 import { format } from 'date-fns'
 import { AddVenueModal } from '../components/venues/AddVenueModal'
 
@@ -33,19 +34,15 @@ export function Dave() {
   const { data: venues, isLoading } = useQuery({
     queryKey: ['venues', 'dave'],
     queryFn: async () => {
-      const response = await fetch('/api/venues?user=dave')
-      if (!response.ok) throw new Error('Failed to fetch venues')
-      return response.json() as Promise<Venue[]>
+      return apiFetch('/api/venues?user=dave') as Promise<Venue[]>
     }
   })
 
   const sendSuggestionMutation = useMutation({
     mutationFn: async (venueId: string) => {
-      const response = await fetch(`/api/venues/${venueId}/send`, {
+      return apiFetch(`/api/venues/${venueId}/send`, {
         method: 'POST',
       })
-      if (!response.ok) throw new Error('Failed to send suggestion')
-      return response.json()
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['venues'] })
@@ -55,11 +52,9 @@ export function Dave() {
 
   const deleteVenueMutation = useMutation({
     mutationFn: async (venueId: string) => {
-      const response = await fetch(`/api/venues/${venueId}`, {
+      return apiFetch(`/api/venues/${venueId}`, {
         method: 'DELETE',
       })
-      if (!response.ok) throw new Error('Failed to delete venue')
-      return response.json()
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['venues'] })

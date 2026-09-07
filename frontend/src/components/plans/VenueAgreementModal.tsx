@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { X, MapPin, CheckCircle, XCircle, Plus } from 'lucide-react'
 import { format } from 'date-fns'
+import { apiFetch } from '../../utils/api'
 
 interface VenueAgreementModalProps {
   plan: any
@@ -15,9 +16,9 @@ export function VenueAgreementModal({ plan, onClose }: VenueAgreementModalProps)
 
   const agreeVenueMutation = useMutation({
     mutationFn: async ({ venueId, action }: { venueId: string; action: 'agree' | 'reject' }) => {
-      const response = await fetch(`/api/venues/${venueId}/${action}`, { method: 'POST' })
-      if (!response.ok) throw new Error('Failed to update venue')
-      return response.json()
+      return apiFetch(`/api/venues/${venueId}/${action}`, {
+        method: 'POST',
+      })
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['plans'] })
@@ -27,13 +28,10 @@ export function VenueAgreementModal({ plan, onClose }: VenueAgreementModalProps)
 
   const addVenueMutation = useMutation({
     mutationFn: async (venueData: any) => {
-      const response = await fetch('/api/venues', {
+      return apiFetch('/api/venues', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...venueData, eventId: plan.id }),
       })
-      if (!response.ok) throw new Error('Failed to add venue')
-      return response.json()
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['plans'] })
